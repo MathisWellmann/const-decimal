@@ -93,6 +93,19 @@ where
     pub const DECIMALS: u8 = D;
     pub const SCALING_FACTOR: I = I::SCALING_FACTOR;
 
+    /// Creates a decimal from an integer and its source scale.
+    ///
+    /// # Panics
+    ///
+    /// Panics if converting `integer` to this decimal precision would overflow
+    /// or discard non-zero fractional digits. Use [`Self::try_from_scaled`] for
+    /// untrusted input.
+    #[must_use]
+    pub fn new(integer: I, scale: u8) -> Self {
+        Self::try_from_scaled(integer, scale)
+            .expect("integer cannot be represented at the requested decimal precision")
+    }
+
     #[deprecated(note = "use Self::MIN")]
     #[must_use]
     pub const fn min() -> Self {
@@ -395,6 +408,17 @@ mod tests {
     use proptest::prelude::*;
 
     use super::*;
+
+    #[test]
+    fn new_from_scaled_integer() {
+        assert_eq!(Decimal::<i64, 3>::new(125, 2), Decimal(1_250));
+    }
+
+    #[test]
+    #[should_panic(expected = "integer cannot be represented")]
+    fn new_rejects_precision_loss() {
+        let _ = Decimal::<i64, 1>::new(125, 2);
+    }
 
     #[test]
     #[should_panic(expected = "`Decimal` division by zero; lhs=1.0; rhs=0.0")]
